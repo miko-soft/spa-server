@@ -1,0 +1,29 @@
+{
+  "name": "@mikosoft/spa-server",
+  "version": "1.0.0",
+  "title": "SPA Server",
+  "description": "Single Page Application (SPA) HTTP server with a proxy server to boost the website SEO.",
+  "author": "Sasa Mikodanic <smikodanic@gmail.com>",
+  "homepage": "https://www.mikosoft.info",
+  "license": "MIT",
+  "keywords": [
+    "spa",
+    "single page app",
+    "web application server",
+    "HTTP server",
+    "serve static files",
+    "angular server",
+    "vue server",
+    "react server",
+    "dodo server"
+  ],
+  "main": "index.js",
+  "type": "module",
+  "scripts": {},
+  "dependencies": {},
+  "devDependencies": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/miko-soft/spa-server.git"
+  }
+}
