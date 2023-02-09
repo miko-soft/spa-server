@@ -38,15 +38,6 @@ class ProxyServer {
   }
 
 
-  /**
-   * Fetch puppeteer dynamically because we don't weant to install heavy puppetter lib if only HTTPServer is required.
-   */
-  async fetchPuppeteer() {
-    this.puppeteer = await import('puppeteer').catch(err => console.log('WARNING: The puppeteer is not installed'));
-    if (!this.puppeteer && this.debug) { console.log('Fetched puppeteer'); }
-  }
-
-
   /*** PROXY SERVER COMMANDS ***/
   /**
    * Start the HTTP Server
@@ -137,6 +128,13 @@ class ProxyServer {
 
 
   /***** PUPPETEER - BROWSER *****/
+  /**
+   * Fetch puppeteer dynamically because we don't weant to install heavy puppetter lib if only HTTPServer is required.
+   */
+  async fetchPuppeteer() {
+    this.puppeteer = await import('puppeteer').catch(err => console.log('WARNING: The puppeteer is not installed'));
+    if (!this.puppeteer && this.debug) { console.log('Fetched puppeteer'); }
+  }
 
   /**
    * Open the browser via puppeteer

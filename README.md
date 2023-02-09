@@ -1,5 +1,12 @@
-# single-page-app-server
-> A HTTP server for single page applications (angular, vue, react).
+# @mikosoft/spa-server
+> - HTTP server for single page applications (angular, vue, react).
+> - Proxy server to boost website SEO.
+
+
+## Installation
+```bash
+$ npm install --save @mikosoft/spa-server
+```
 
 ## Features
 - no dependencies
@@ -9,16 +16,15 @@
 - compress HTTP response (gzip or deflate)
 
 
-## Example
+## HTTP Server
+Serve single page application on the HTTP server.
 ```js
-const SPAserver = require('../server');
-
 const httpOpts = {
-  port: 4520,
-  timeout: 0, // if 0 never timeout
   staticDir: '/dist/angular-project',
   indexFile: 'index.html',
-  acceptEncoding: 'deflate', // gzip, deflate or ''
+  port: process.env.PORT || 9000,
+  timeout: 5 * 60 * 1000, // if 0 never timeout
+  acceptEncoding: 'gzip', // gzip, deflate or ''
   headers: {
     // CORS Headers
     'Access-Control-Allow-Origin': '*',
@@ -28,18 +34,56 @@ const httpOpts = {
   },
   debug: false
 };
-
-const spaServer = new SPAserver(opts);
-spaServer.start();
+const httpServer = new HTTPServer(httpOpts);
+httpServer.start();
 ```
 
 
-## API
-- **start(): httpServer** - start the HTTP server
-- **stop(): void** - stop the HTTP server
-- **restart(): void** - restart the HTTP server
+#### HTTP Server methods
+- **start()** - start the HTTP server
+- **stop()** - stop the HTTP server
+- **restart()** - restart the HTTP server
+
+
+## Proxy Server
+Serve single page application via proxy server and boost the SEO.
+Proxy Server is placed between client (browser) and HTTPServer.
+```js
+const main = async () => {
+  const proxyOpts = {
+    port: process.env.PORT || 9001,
+    request_host: 'localhost',
+    request_port: 9000,
+    regexpUA: /Mozilla/,
+    debug: true
+  };
+  const browserOpts = {
+    headless: false,
+    width: 1300,
+    height: 900,
+    position: '700,20'
+  };
+
+  const proxyServer = new ProxyServer(proxyOpts, browserOpts);
+
+  await proxyServer.fetchPuppeteer(); // defines this.puppeteer
+  await proxyServer.openBrowser();
+  proxyServer.start();
+};
+
+main();
+```
+
+
+#### Proxy Server methods
+- **fetchPuppeteer()** - get puppeteer npm library
+- **openBrowser()** - open browser via the puppeteer
+- **closeBrowser()** - close browser
+- **start()** - start the Proxy server
+- **stop()** - stop the Proxy server
+- **restart()** - restart the Proxy server
 
 
 
 ### Licence
-Copyright (c) 2020 Saša Mikodanić licensed under [AGPL-3.0](./LICENSE) .
+Copyright (C) 2023-present MikoSoft licensed under [MIT](./LICENSE) .
