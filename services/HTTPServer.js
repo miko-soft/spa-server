@@ -28,11 +28,12 @@ class HTTPServer {
     // HTTP server options
     if (!!httpOpts) {
       this.httpOpts = httpOpts;
+      if (!this.httpOpts.staticDir) { this.httpOpts.staticDir = 'frontend'; }
+      if (!this.httpOpts.indexFile) { this.httpOpts.indexFile = 'index.html'; }
       if (!this.httpOpts.port) { throw new Error('The server port is not defined.'); }
-      else if (this.httpOpts.timeout === undefined) { this.httpOpts.timeout = 5 * 60 * 1000; }
-      else if (!this.httpOpts.staticDir) { this.httpOpts.staticDir = 'frontend'; }
-      else if (!this.httpOpts.indexFile) { this.httpOpts.indexFile = 'index.html'; }
-      else if (!this.httpOpts.headers) { this.httpOpts.headers = []; }
+      if (this.httpOpts.timeout === undefined) { this.httpOpts.timeout = 5 * 60 * 1000; }
+      if (!this.httpOpts.acceptEncoding) { this.httpOpts.acceptEncoding = 'gzip'; }
+      if (!this.httpOpts.headers) { this.httpOpts.headers = []; }
     } else {
       throw new Error('HTTP Server options are not defined.');
     }
@@ -46,13 +47,11 @@ class HTTPServer {
    * Start the HTTP Server
    */
   start() {
-    // start HTTP Server
     this.httpServer = http.createServer((req, res) => {
-
       const reqURL = req.url;
       const reqURL_noquery = reqURL.trim().replace(/\?.+/, ''); // URL where query is removed, for example for example ?v=4.7.0
 
-      // define "Content-Type" header and "encoding" according to file extension
+      // define "Content-Type" header and "encoding" according to file extension - https://www.iana.org/assignments/media-types/media-types.xhtml
       const mime = {
         html: 'text/html',
         txt: 'text/plain',
@@ -203,7 +202,7 @@ class HTTPServer {
     } else { // file doesn't exist
       const errMsg = `NOT FOUND: "${filePath}"`;
       console.log('\x1b[31m' + errMsg + '\x1b[0m');
-      res.writeHead(404, { 'RG-Error': errMsg });
+      res.writeHead(404, { 'X-Error': errMsg });
       res.end();
     }
 

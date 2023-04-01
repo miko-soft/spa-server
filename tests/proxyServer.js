@@ -1,3 +1,4 @@
+import puppeteer from 'puppeteer';
 import { ProxyServer } from '../index.js';
 
 
@@ -18,7 +19,7 @@ const main = async () => {
 
   const proxyServer = new ProxyServer(proxyOpts, browserOpts);
 
-  await proxyServer.fetchPuppeteer(); // defines this.puppeteer
+  await proxyServer.injectPuppeteer(puppeteer); // defines this.puppeteer
   await proxyServer.openBrowser();
   proxyServer.start();
 };

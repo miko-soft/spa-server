@@ -19,6 +19,8 @@ $ npm install --save @mikosoft/spa-server
 ## HTTP Server
 Serve single page application on the HTTP server.
 ```js
+import { HTTPServer } from '@mikosoft/spa-server';
+
 const httpOpts = {
   staticDir: '/dist/angular-project',
   indexFile: 'index.html',
@@ -49,6 +51,9 @@ httpServer.start();
 Serve single page application via proxy server and boost the SEO.
 Proxy Server is placed between client (browser) and HTTPServer.
 ```js
+import puppeteer from 'puppeteer';
+import { ProxyServer } from '@mikosoft/spa-server';
+
 const main = async () => {
   const proxyOpts = {
     port: process.env.PORT || 9001,
@@ -66,7 +71,7 @@ const main = async () => {
 
   const proxyServer = new ProxyServer(proxyOpts, browserOpts);
 
-  await proxyServer.fetchPuppeteer(); // defines this.puppeteer
+  await proxyServer.injectPuppeteer(puppeteer); // defines this.puppeteer
   await proxyServer.openBrowser();
   proxyServer.start();
 };
