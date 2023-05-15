@@ -1,5 +1,5 @@
 # @mikosoft/spa-server
-> - HTTP server for single page applications (angular, vue, react).
+> - HTTP server for single page applications (angular, vue, react, [dodo](http://dodo.mikosoft.com)).
 > - Proxy server to boost website SEO.
 
 
@@ -81,7 +81,7 @@ main();
 
 
 #### Proxy Server methods
-- **fetchPuppeteer()** - get puppeteer npm library
+- **injectPuppeteer()** - inject puppeteer npm library
 - **openBrowser()** - open browser via the puppeteer
 - **closeBrowser()** - close browser
 - **start()** - start the Proxy server
