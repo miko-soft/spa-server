@@ -14,8 +14,9 @@ class HTTPServer {
 
   /**
    ** httpOpts:
-   * - staticDir:string, // directory with static, frontend files (path relative to process.cwd())
-   * - indexFile:string, // root HTML file (in the staticDir)
+   * - staticDir:string, - directory with static, frontend files (path relative to process.cwd())
+   * - indexFile:string, - root HTML file (in the staticDir)
+   * - openDirs:string, - dirs which will be served by the server. For example it's 'node_modules' the URL /node_modules/... will serve everything from this folder. This field is a string which represent regular expression ('node_modules\/dodo').
    * - port:number - HTTP Server port number
    * - timeout:number - ms of inactivity after ws will be closed. If 0 then the ws will never close. Default is 5 minute
    * - acceptEncoding:string - gzip or deflate
@@ -28,8 +29,9 @@ class HTTPServer {
     // HTTP server options
     if (!!httpOpts) {
       this.httpOpts = httpOpts;
-      if (!this.httpOpts.staticDir) { this.httpOpts.staticDir = 'frontend'; }
+      if (!this.httpOpts.staticDir) { this.httpOpts.staticDir = 'src'; }
       if (!this.httpOpts.indexFile) { this.httpOpts.indexFile = 'index.html'; }
+      if (!this.httpOpts.openDirs) { this.httpOpts.openDirs = ''; }
       if (!this.httpOpts.port) { throw new Error('The server port is not defined.'); }
       if (this.httpOpts.timeout === undefined) { this.httpOpts.timeout = 5 * 60 * 1000; }
       if (!this.httpOpts.acceptEncoding) { this.httpOpts.acceptEncoding = 'gzip'; }
@@ -104,7 +106,10 @@ class HTTPServer {
       if (!!fileExt) {
         /* - requests with file extension
            - for example: /frontend/views/pages/home/layout.html */
-        filePath = path.join(process.cwd(), this.httpOpts.staticDir, reqURL_noquery);
+        const reg = new RegExp(this.httpOpts.openDirs, 'i');
+        filePath = reg.test(reqURL_noquery) ?
+          path.join(process.cwd(), reqURL_noquery) :
+          path.join(process.cwd(), this.httpOpts.staticDir, reqURL_noquery);
       } else {
         /* - if request doesn't contain file extension (browser bar request) then send app.html
            - for example: / or /playground/model */
