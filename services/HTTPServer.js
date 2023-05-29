@@ -180,6 +180,9 @@ class HTTPServer {
         }
         res.setHeader('Content-Type', contentType);
 
+        // set Server header
+        res.setHeader('Server', '@mikosoft/spa-server');
+
 
 
         /*** B) compress response ***/
@@ -187,6 +190,7 @@ class HTTPServer {
         if (!acceptEncodingBrowser) { acceptEncodingBrowser = ''; }
 
         const raw = fs.createReadStream(filePath);
+
 
         // http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.3
         if (acceptEncodingBrowser.match(/\bgzip\b/) && this.httpOpts.acceptEncoding === 'gzip') {
@@ -199,6 +203,7 @@ class HTTPServer {
           res.writeHead(200);
           raw.pipe(res);
         }
+
 
       } catch (err) {
         console.log(err);
