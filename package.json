@@ -1,6 +1,6 @@
 {
   "name": "@mikosoft/spa-server",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "title": "SPA Server",
   "description": "Single Page Application (SPA) HTTP server with a proxy server to boost the website SEO.",
   "author": "Sasa Mikodanic <smikodanic@gmail.com>",
