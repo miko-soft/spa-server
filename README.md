@@ -24,6 +24,9 @@ import { HTTPServer } from '@mikosoft/spa-server';
 const httpOpts = {
   staticDir: '/dist/angular-project',
   indexFile: 'index.html',
+  urlRewrite: {
+    '^/image': '/public/img'
+  },
   port: process.env.PORT || 9000,
   timeout: 5 * 60 * 1000, // if 0 never timeout
   acceptEncoding: 'gzip', // gzip, deflate or ''
