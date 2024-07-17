@@ -20,8 +20,9 @@
   "main": "index.js",
   "type": "module",
   "scripts": {},
-  "dependencies": {},
-  "devDependencies": {},
+  "dependencies": {
+    "jsdom": "^24.1.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/miko-soft/spa-server.git"

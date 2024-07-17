@@ -6,8 +6,8 @@ import os from 'os';
 
 /**
  * The Proxy Server which is standing between client (browser) and HTTPServer and in that way boosts the website SEO.
- * It converts Single Page Application to Server Side Rendered (SSR) Application.
- * NOTICE: Install puppeteer $ npm install puppeteer
+ * Use it as proxy for HTTPServer_noSSR.js to render HTML on the server side.
+ * NOTICE: Install puppeteer $ npm install puppeteer or $ npm install puppeteer-core
  */
 class ProxyServer {
 
