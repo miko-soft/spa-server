@@ -408,7 +408,7 @@ const httpOpts = {
     const document = window.document;
 
     // Override console methods in the JSDOM window
-    this._consoleLogs(dom);
+    !this.httpOpts.ssrConsole && this._disableConsoleLogs(dom);
 
     // Modify the document
     this.httpOpts.ssrModifier && this.httpOpts.ssrModifier(document);
@@ -484,12 +484,12 @@ const httpOpts = {
    * Disable showing frontend JS logs in the backend (i.e. in the terminal where NodeJS instance is started)
    * @param {DOM} dom - HTML dom instance
    */
-  _consoleLogs(dom) {
-    dom.window.console.log = this.httpOpts.ssrConsole ? console.log : () => { };
-    dom.window.console.info = this.httpOpts.ssrConsole ? console.info : () => { };
-    dom.window.console.warn = this.httpOpts.ssrConsole ? console.warn : () => { };
-    dom.window.console.error = this.httpOpts.ssrConsole ? console.error : () => { };
-    dom.window.console.debug = this.httpOpts.ssrConsole ? console.debug : () => { };
+  _disableConsoleLogs(dom) {
+    dom.window.console.log = () => { };
+    dom.window.console.info = () => { };
+    dom.window.console.warn = () => { };
+    dom.window.console.error = () => { };
+    dom.window.console.debug = () => { };
   }
 
   /**
