@@ -171,7 +171,6 @@ const httpOpts = {
 
       /*** B) Send response ***/
       const acceptEncodingBrowser = req.headers['accept-encoding'] || '';
-
       if (contentType === 'text/html') { // HTML files
         const initialHTML = await fsp.readFile(filePath, 'utf8');
         this.httpOpts.debugHTML && console.log('\n\n++++++++++++initialHTML++++++++++++\n', initialHTML, '\n++++++++++++initialHTML++++++++++++');
@@ -389,6 +388,12 @@ const httpOpts = {
   }
 
 
+  /**
+   * Execute Server Side Rendering - Parse initial HTML to get rendered HTML - Load dynamic HTML content generated with JS
+   * @param {string} url - requested URL, for example http://127.0.0.1:3000/ , or http://127.0.0.1:3000/page1
+   * @param {string} initialHTML - HTML before rendering
+   * @returns {string}
+   */
   async _ssrExe(url, initialHTML) {
     const jsdomOpts = {
       url,
@@ -401,17 +406,18 @@ const httpOpts = {
     const dom = new JSDOM(initialHTML, jsdomOpts);
     const window = dom.window;
     const document = window.document;
-    this._consoleLogs(dom); // override console methods in the JSDOM window
 
-
+    // Override console methods in the JSDOM window
+    this._consoleLogs(dom);
 
     // Modify the document
     this.httpOpts.ssrModifier && this.httpOpts.ssrModifier(document);
 
-    // Execute inline and external scripts
+    // Execute inline and external scripts (only external scripts from the same hostname where is index.html)
+    const url_obj = new URL(url);
     const scripts = document.querySelectorAll('script');
     for (const script of scripts) {
-      if (script.src) { // srcipt.src -> http://127.0.0.1:3000/dodoBuild/index-8f91b719.js
+      if (script.src && script.src.includes(url_obj.hostname)) { // srcipt.src -> http://127.0.0.1:3000/dodoBuild/index-8f91b719.js ; url_obj.hostname -> 127.0.0.1
         const scriptSrc_obj = new URL(script.src);
         const scriptFilePath = path.join(process.cwd(), this.httpOpts.staticDir, scriptSrc_obj.pathname); // /web/node/@mikosoft/dodo-framework/create-dodo-boilerplates/dist/dodoBuild/index-8f91b719.js
         const scriptContent = await fsp.readFile(scriptFilePath, 'utf-8');
