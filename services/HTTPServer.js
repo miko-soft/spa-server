@@ -25,32 +25,36 @@ class HTTPServer {
    * - acceptEncoding:string - gzip or deflate
    * - headers:object - custom server response headers
    * - ssr:'all'|'botsonly'|'none' - server side rendering
+   * - ssrConsole:boolean - show frontend JS logs on the backend terminal
+   * - ssrModifier:null|Function - modify document on the server side
    * - debug:boolean - print debug messages
+   * - debugHTML:boolean - debug initial and postrender HTML
    *
    * OPTS EXAMPLE::
-  const httpOpts = {
-    staticDir: 'dist',
-    indexFile: 'index.html',
-    urlRewrite: {},
-    port: process.env.PORT || 3000,
-    timeout: 100000, // if 0 never timeout
-    acceptEncoding: 'gzip', // gzip, deflate or ''
-    headers: {
-      // CORS Response Headers
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Origin, X-Requested-With, Content-Type, Accept, Authorization',
-      'Access-Control-Allow-Methods': 'GET', // 'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, HEAD',
-      'Access-Control-Max-Age': '3600'
-    },
-    ssr: 'all', // none, all, botsonly
-    ssrModifier: (document) => {
-      document.title = 'Modified title';
-      const script = document.createElement('script');
-      script.textContent = "console.log('Dynamic script executed!')";
-      document.body.appendChild(script);
-    },
-    debug: false,
-    debugHTML: false
+const httpOpts = {
+  staticDir: 'dist',
+  indexFile: 'index.html',
+  urlRewrite: {}, // map URLs to directory: {url1: dir1, url2:dir2} NOTICE:The url i.e. the object key can contain regex chars like ^ $ * ...
+  port: process.env.PORT || 3000,
+  timeout: 5 * 60 * 1000, // if 0 never timeout
+  acceptEncoding: 'gzip', // gzip, deflate or ''
+  headers: {
+    // CORS Response Headers
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Origin, Content-Type, Accept, Authorization',
+    'Access-Control-Allow-Methods': 'OPTIONS, GET', // 'Access-Control-Allow-Methods': 'OPTIONS, GET, POST, PUT, PATCH, DELETE, HEAD',
+    'Access-Control-Max-Age': '3600'
+  },
+  ssr: 'all', // none, all, botsonly
+  ssrConsole: false, // frontend JS logs in the backend
+  ssrModifier: (document) => { // modify document on the server side
+    document.title = 'Modified title';
+    const script = document.createElement('script');
+    script.textContent = "console.log('Dynamic script executed!')";
+    document.body.appendChild(script);
+  },
+  debug: false,
+  debugHTML: true
 };
    * @param  {object} httpOpts
    * @returns {void}
@@ -64,10 +68,11 @@ class HTTPServer {
       if (!this.httpOpts.urlRewrite) { this.httpOpts.urlRewrite = {}; }
       if (!this.httpOpts.port) { throw new Error('The server port is not defined.'); }
       if (this.httpOpts.timeout === undefined) { this.httpOpts.timeout = 5 * 60 * 1000; }
-      if (!this.httpOpts.acceptEncoding) { this.httpOpts.acceptEncoding = 'gzip'; }
+      if (!this.httpOpts.acceptEncoding) { this.httpOpts.acceptEncoding = ''; }
       if (!this.httpOpts.responseHeaders) { this.httpOpts.responseHeaders = {}; } // custom response headers
       if (!this.httpOpts.ssr) { this.httpOpts.ssr = 'none'; } // all, bots-only, none
-      if (!this.httpOpts.ssrModifier) { this.httpOpts.ssrModifier = false; } // false, Function
+      if (!this.httpOpts.ssrModifier) { this.httpOpts.ssrModifier = null; } // null, Function -- modify document on the server side
+      if (!this.httpOpts.ssrConsole) { this.httpOpts.ssrConsole = false; } // show logs from the frontend JS file in the terminal where the NodeJS instance is running
       if (!this.httpOpts.debug) { this.httpOpts.debug = false; }
       if (!this.httpOpts.debugHTML) { this.httpOpts.debugHTML = false; }
     } else {
@@ -93,12 +98,23 @@ class HTTPServer {
       const filePath = this._solveFilePath(reqURL_noquery); // map url to file path
 
       this._sendResponse(res, req, contentType, filePath); // send response to the client
+
+      // handle request timeout
+      if (this.httpOpts.timeout > 0) {
+        const timeoutId = setTimeout(() => {
+          const errMsg = `408 Request Timeout: ${req.url}`;
+          this._handleError(res, errMsg);
+        }, this.httpOpts.timeout);
+        res.on('finish', () => clearTimeout(timeoutId));
+        res.on('close', () => clearTimeout(timeoutId));
+      }
+
     });
 
 
     // configure HTTP Server
     this.httpServer.listen(this.httpOpts.port);
-    this.httpServer.timeout = this.httpOpts.timeout;
+    this.httpServer.timeout = this.httpServer.timeout > 0 ? this.httpOpts.timeout + 100 : 0; // built-in feature provided by Node.js, which can be handy for ensuring that connections don't hang indefinitely due to network issues or unresponsive clients
 
 
     // listen for server events
@@ -142,10 +158,8 @@ class HTTPServer {
    */
   async _sendResponse(res, req, contentType, filePath) {
     if (!fs.existsSync(filePath)) {
-      const errMsg = `NOT FOUND: "${filePath}"`;
-      console.log('\x1b[31m' + errMsg + '\x1b[0m');
-      res.writeHead(404, { 'X-Error': errMsg });
-      res.end();
+      const errMsg = `404 File Not Found: "${filePath}"`;
+      this._handleError(res, errMsg);
       return;
     }
 
@@ -158,9 +172,9 @@ class HTTPServer {
       /*** B) Send response ***/
       const acceptEncodingBrowser = req.headers['accept-encoding'] || '';
 
-      if (contentType === 'text/html') {
+      if (contentType === 'text/html') { // HTML files
         const initialHTML = await fsp.readFile(filePath, 'utf8');
-        this.httpOpts.debugHTML && console.log('\n\n++++++++++++initialHTML++++++++++++\n', initialHTML, '\n+++++++++++++++++++++++++++++++++++');
+        this.httpOpts.debugHTML && console.log('\n\n++++++++++++initialHTML++++++++++++\n', initialHTML, '\n++++++++++++initialHTML++++++++++++');
 
         const doSSR = (
           this.httpOpts.ssr !== 'none' &&
@@ -169,49 +183,36 @@ class HTTPServer {
 
         const url = `http://${req.headers.host}${req.url}`;
         const finalHTML = doSSR ? await this._ssrExe(url, initialHTML) : initialHTML;
-        this.httpOpts.debugHTML && console.log('\n\n++++++++++++finalHTML++++++++++++\n', finalHTML, '\n+++++++++++++++++++++++++++++++++++');
+        this.httpOpts.debugHTML && console.log('\n\n++++++++++++finalHTML++++++++++++\n', finalHTML, '\n++++++++++++finalHTML++++++++++++');
 
         this._sendCompressedResponse(res, finalHTML, acceptEncodingBrowser);
 
-      } else {
+      } else { // JS, CSS, IMG, ... files
         const raw = fs.createReadStream(filePath);
         this._sendCompressedResponse(res, raw, acceptEncodingBrowser);
       }
 
     } catch (err) {
-      console.log(err);
-      res.writeHead(500, { 'X-Error': err.message });
-      res.end();
+      const errMsg = err.message;
+      this._handleError(res, errMsg);
     }
 
   }
 
 
   _sendCompressedResponse(res, data, acceptEncodingBrowser) {
-    const handleError = (err) => {
-      console.log(err);
-      res.writeHead(500, { 'X-Error': err.message });
-      res.end('Server Error');
-    };
-
     if (typeof data === 'string') {
-      // Handle string data (modified HTML)
+      // Handle string data (HTML string)
       if (acceptEncodingBrowser.match(/\bgzip\b/) && this.httpOpts.acceptEncoding === 'gzip') {
         res.writeHead(200, { 'Content-Encoding': 'gzip' });
         zlib.gzip(data, (err, compressedData) => {
-          if (err) {
-            handleError(err);
-            return;
-          }
+          if (err) { return this._handleError(res, err.message); }
           res.end(compressedData);
         });
       } else if (acceptEncodingBrowser.match(/\bdeflate\b/) && this.httpOpts.acceptEncoding === 'deflate') {
         res.writeHead(200, { 'Content-Encoding': 'deflate' });
         zlib.deflate(data, (err, compressedData) => {
-          if (err) {
-            handleError(err);
-            return;
-          }
+          if (err) { return this._handleError(res, err.message); }
           res.end(compressedData);
         });
       } else {
@@ -346,7 +347,7 @@ class HTTPServer {
     else if (/^css\.map$/.test(fileExt)) { contentType = mime.js_map; fileEncoding = 'utf8'; }
     else if (/^js\.map$/.test(fileExt)) { contentType = mime.js_map; fileEncoding = 'utf8'; }
 
-    this.httpOpts.debug && console.log('fileExt::', fileExt, ', contentType::', contentType, ', fileEncoding::');
+    this.httpOpts.debug && console.log('fileExt::', fileExt, ', contentType::', contentType, ', fileEncoding::', fileEncoding);
 
     return contentType;
   }
@@ -400,6 +401,9 @@ class HTTPServer {
     const dom = new JSDOM(initialHTML, jsdomOpts);
     const window = dom.window;
     const document = window.document;
+    this._consoleLogs(dom); // override console methods in the JSDOM window
+
+
 
     // Modify the document
     this.httpOpts.ssrModifier && this.httpOpts.ssrModifier(document);
@@ -467,6 +471,30 @@ class HTTPServer {
     this.httpOpts.debug && console.log('user agent::', userAgent);
     if (!userAgent) { return false; }
     return botUserAgents.some(botRegex => botRegex.test(userAgent));
+  }
+
+
+  /**
+   * Disable showing frontend JS logs in the backend (i.e. in the terminal where NodeJS instance is started)
+   * @param {DOM} dom - HTML dom instance
+   */
+  _consoleLogs(dom) {
+    dom.window.console.log = this.httpOpts.ssrConsole ? console.log : () => { };
+    dom.window.console.info = this.httpOpts.ssrConsole ? console.info : () => { };
+    dom.window.console.warn = this.httpOpts.ssrConsole ? console.warn : () => { };
+    dom.window.console.error = this.httpOpts.ssrConsole ? console.error : () => { };
+    dom.window.console.debug = this.httpOpts.ssrConsole ? console.debug : () => { };
+  }
+
+  /**
+   * Print error message in the console (red color) and send it to the client.
+   * @param {object} res - response object
+   * @param {string} errMsg - the message
+   */
+  _handleError(res, errMsg) {
+    console.log('\x1b[31m' + errMsg + '\x1b[0m');
+    res.writeHead(404, { 'Content-Type': 'text/plain', 'X-Error': errMsg });
+    res.end(errMsg);
   }
 
 
