@@ -417,6 +417,7 @@ const httpOpts = {
     const url_obj = new URL(url);
     const scripts = document.querySelectorAll('script');
     for (const script of scripts) {
+      this.httpOpts.debug && console.log(' script.src::', script.src);
       if (script.src && script.src.includes(url_obj.hostname)) { // srcipt.src -> http://127.0.0.1:3000/dodoBuild/index-8f91b719.js ; url_obj.hostname -> 127.0.0.1
         const scriptSrc_obj = new URL(script.src);
         const scriptFilePath = path.join(process.cwd(), this.httpOpts.staticDir, scriptSrc_obj.pathname); // /web/node/@mikosoft/dodo-framework/create-dodo-boilerplates/dist/dodoBuild/index-8f91b719.js
