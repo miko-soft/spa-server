@@ -173,7 +173,7 @@ const httpOpts = {
       const acceptEncodingBrowser = req.headers['accept-encoding'] || '';
       if (contentType === 'text/html') { // HTML files
         const initialHTML = await fsp.readFile(filePath, 'utf8');
-        this.httpOpts.debugHTML && console.log('\n\n++++++++++++initialHTML++++++++++++\n', initialHTML, '\n++++++++++++initialHTML++++++++++++');
+        this.httpOpts.debugHTML && console.log('\n\n++++++++++++initialHTML++++++++++++\n', initialHTML, '\n++++++++++++/initialHTML++++++++++++');
 
         const doSSR = (
           this.httpOpts.ssr !== 'none' &&
@@ -182,7 +182,7 @@ const httpOpts = {
 
         const url = `http://${req.headers.host}${req.url}`;
         const finalHTML = doSSR ? await this._ssrExe(url, initialHTML) : initialHTML;
-        this.httpOpts.debugHTML && console.log('\n\n++++++++++++finalHTML++++++++++++\n', finalHTML, '\n++++++++++++finalHTML++++++++++++');
+        this.httpOpts.debugHTML && console.log('\n\n++++++++++++finalHTML++++++++++++\n', finalHTML, '\n++++++++++++/finalHTML++++++++++++');
 
         this._sendCompressedResponse(res, finalHTML, acceptEncodingBrowser);
 
