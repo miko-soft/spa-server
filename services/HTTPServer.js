@@ -25,6 +25,7 @@ class HTTPServer {
    * - acceptEncoding:string - gzip or deflate
    * - headers:object - custom server response headers
    * - ssr:'all'|'botsonly'|'none' - server side rendering
+   * - ssrDomMutuationTimeout:number - ms to wait for DOM mutations to settle, default is 2000ms
    * - ssrConsole:boolean - show frontend JS logs on the backend terminal
    * - ssrModifier:null|Function - modify document on the server side
    * - debug:boolean - print debug messages
@@ -71,6 +72,7 @@ const httpOpts = {
       if (!this.httpOpts.acceptEncoding) { this.httpOpts.acceptEncoding = ''; }
       if (!this.httpOpts.responseHeaders) { this.httpOpts.responseHeaders = {}; } // custom response headers
       if (!this.httpOpts.ssr) { this.httpOpts.ssr = 'none'; } // all, bots-only, none
+      if (!this.httpOpts.ssrDomMutuationTimeout) { this.httpOpts.ssrDomMutuationTimeout = 2000; } // ms to wait for DOM mutations to settle, default is 2000ms
       if (!this.httpOpts.ssrModifier) { this.httpOpts.ssrModifier = null; } // null, Function -- modify document on the server side
       if (!this.httpOpts.ssrConsole) { this.httpOpts.ssrConsole = false; } // show logs from the frontend JS file in the terminal where the NodeJS instance is running
       if (!this.httpOpts.debug) { this.httpOpts.debug = false; }
@@ -435,7 +437,7 @@ const httpOpts = {
       setTimeout(() => {
         observer.disconnect();
         resolve();
-      }, 100); // adjust timeout as needed
+      }, this.httpOpts.ssrDomMutuationTimeout);
     });
 
     const renderedHTML = dom.serialize(); // retreive HTML from dom

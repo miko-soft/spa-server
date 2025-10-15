@@ -43,6 +43,7 @@ const httpOpts = {
     'Access-Control-Max-Age': '3600'
   },
   ssr: 'all', // none, all, botsonly
+  ssrDomMutuationTimeout: 2000, // ms to wait for DOM mutations, increase if your single page app is slow
   ssrConsole: false, // frontend JS logs in the backend
   ssrModifier: (document) => { // modify document on the server side
     document.title = 'Modified title';
@@ -67,6 +68,7 @@ httpServer.start();
 - *acceptEncoding*:string - gzip or deflate
 - *headers*:object - custom server response headers
 - *ssr*:'all'|'botsonly'|'none' - server side rendering
+- *ssrDomMutuationTimeout*:number - ms to wait for DOM mutations, default is 2000ms; increase if your single page app is slow
 - *ssrConsole*:boolean - show frontend JS logs on the backend terminal
 - *ssrModifier*:null|Function - modify document on the server side
 - *debug*:boolean - print debug messages
