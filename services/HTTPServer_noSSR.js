@@ -22,7 +22,7 @@ class HTTPServer {
    * - port:number - HTTP Server port number
    * - timeout:number - ms of inactivity after ws will be closed. If 0 then the ws will never close. Default is 5 minute
    * - acceptEncoding:string - gzip or deflate
-   * - headers:object - custom server response headers
+   * - responseHeaders:object - custom server response headers
    * - debug:boolean - print debug messages
    * @param  {object} httpOpts - options {port, timeout, acceptEncoding, headers, debug}
    * @returns {void}
@@ -37,7 +37,7 @@ class HTTPServer {
       if (!this.httpOpts.port) { throw new Error('The server port is not defined.'); }
       if (this.httpOpts.timeout === undefined) { this.httpOpts.timeout = 5 * 60 * 1000; }
       if (!this.httpOpts.acceptEncoding) { this.httpOpts.acceptEncoding = 'gzip'; }
-      if (!this.httpOpts.headers) { this.httpOpts.headers = {}; }
+      if (!this.httpOpts.responseHeaders) { this.httpOpts.responseHeaders = {}; }
     } else {
       throw new Error('HTTP Server options are not defined.');
     }
@@ -192,7 +192,7 @@ class HTTPServer {
 
     try {
       /*** A) set headers defined in the httpOpts ***/
-      for (const [headerProp, headerValue] of Object.entries(this.httpOpts.headers)) { res.setHeader(headerProp, headerValue); }
+      for (const [headerProp, headerValue] of Object.entries(this.httpOpts.responseHeaders)) { res.setHeader(headerProp, headerValue); }
       res.setHeader('Content-Type', contentType);
       res.setHeader('Server', '@mikosoft/spa-server');
 

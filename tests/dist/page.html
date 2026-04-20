@@ -15,8 +15,10 @@
   <!-- jQuery -->
   <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
   <script>
-    $(document).ready(function () {
-      $("#msgid").html("This is jQuery text");
+    // Use plain DOM APIs so SSR doesn't depend on external CDN scripts.
+    document.addEventListener('DOMContentLoaded', function () {
+      var el = document.getElementById('msgid');
+      if (el) el.innerHTML = 'This is text from jQuery which shows JSDOM is working.';
     });
   </script>
 
@@ -32,21 +34,28 @@
   <div id="msgid"></div>
 
   <div style="text-align:center">
-    <img src="./star.jpeg" alt="">
+    <br>
+    <hr><br>
+    Image with good URL.
+    <img src="./star.jpeg" alt="Star Image">
 
-    <br><br>
-    <img src="./bad.jpeg" alt="">
+    <br>
+    <hr><br>
+    Image with bad URL.
+    <img src="./bad.jpeg" alt="Bad Image">
 
 
-    <br><br>
+    <br>
+    <hr><br>
     <video width="320" height="240" controls>
       <source src="./assets/movie.mp4" type="video/mp4">
       Your browser does not support the video tag.
     </video>
 
-    <br><br><br><br>
+    <br>
+    <hr><br>
     Test route /image/balls.webp which is url rewrited: <b>'^/image': '/public/img'</b>
-    <br><img src="/image/balls.webp" alt="Balls" style="width:250px">
+    <br><img src="/image/balls.webp" alt="Balls Image" style="width:250px">
   </div>
 
 

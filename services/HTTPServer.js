@@ -23,9 +23,8 @@ class HTTPServer {
    * - port:number - HTTP Server port number
    * - timeout:number - ms to wait for response. If 0 then the HTTP connection will never close. Default is 5 minute
    * - acceptEncoding:string - gzip or deflate
-   * - headers:object - custom server response headers
-   * - ssr:'all'|'botsonly'|'none' - server side rendering
-   * - ssrDomMutuationTimeout:number - ms to wait for DOM mutations to settle, default is 2000ms
+   * - responseHeaders:object - custom server response headers
+   * - ssr:'all'|'botsonly'|'none' - server side rendering - IMPORTANT: SPA must send 'ssr-ready' event to the backend when the DOM is ready
    * - ssrConsole:boolean - show frontend JS logs on the backend terminal
    * - ssrModifier:null|Function - modify document on the server side
    * - debug:boolean - print debug messages
@@ -37,9 +36,9 @@ const httpOpts = {
   indexFile: 'index.html',
   urlRewrite: {}, // map URLs to directory: {url1: dir1, url2:dir2} NOTICE:The url i.e. the object key can contain regex chars like ^ $ * ...
   port: process.env.PORT || 3000,
-  timeout: 5 * 60 * 1000, // if 0 never timeout
+  timeout: 1 * 60 * 1000, // if 0 never timeout
   acceptEncoding: 'gzip', // gzip, deflate or ''
-  headers: {
+  responseHeaders: {
     // CORS Response Headers
     'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Origin, Content-Type, Accept, Authorization',
@@ -64,19 +63,18 @@ const httpOpts = {
     // HTTP server options
     if (!!httpOpts) {
       this.httpOpts = httpOpts;
-      if (!this.httpOpts.staticDir) { this.httpOpts.staticDir = 'dist'; }
-      if (!this.httpOpts.indexFile) { this.httpOpts.indexFile = 'index.html'; }
-      if (!this.httpOpts.urlRewrite) { this.httpOpts.urlRewrite = {}; }
-      if (!this.httpOpts.port) { throw new Error('The server port is not defined.'); }
-      if (this.httpOpts.timeout === undefined) { this.httpOpts.timeout = 5 * 60 * 1000; }
-      if (!this.httpOpts.acceptEncoding) { this.httpOpts.acceptEncoding = ''; }
-      if (!this.httpOpts.responseHeaders) { this.httpOpts.responseHeaders = {}; } // custom response headers
-      if (!this.httpOpts.ssr) { this.httpOpts.ssr = 'none'; } // all, bots-only, none
-      if (!this.httpOpts.ssrDomMutuationTimeout) { this.httpOpts.ssrDomMutuationTimeout = 2000; } // ms to wait for DOM mutations to settle, default is 2000ms
-      if (!this.httpOpts.ssrModifier) { this.httpOpts.ssrModifier = null; } // null, Function -- modify document on the server side
-      if (!this.httpOpts.ssrConsole) { this.httpOpts.ssrConsole = false; } // show logs from the frontend JS file in the terminal where the NodeJS instance is running
-      if (!this.httpOpts.debug) { this.httpOpts.debug = false; }
-      if (!this.httpOpts.debugHTML) { this.httpOpts.debugHTML = false; }
+      if (!this.httpOpts.staticDir) { this.httpOpts.staticDir = 'dist'; } // directory with static, frontend files (path relative to process.cwd())
+      if (!this.httpOpts.indexFile) { this.httpOpts.indexFile = 'index.html'; } // root HTML file (in the staticDir)
+      if (!this.httpOpts.urlRewrite) { this.httpOpts.urlRewrite = {}; } // map URLs to directory: {url1: dir1, url2:dir2} NOTICE:The url i.e. the object key can contain regex chars like ^ $ * ...
+      if (!this.httpOpts.port) { throw new Error('The server port is not defined.'); } // HTTP Server port number
+      if (this.httpOpts.timeout === undefined) { this.httpOpts.timeout = 1 * 60 * 1000; } // 1 minute (if 0 never timeout)
+      if (!this.httpOpts.acceptEncoding) { this.httpOpts.acceptEncoding = ''; } // gzip, deflate or ''
+      if (!this.httpOpts.responseHeaders) { this.httpOpts.responseHeaders = {}; } // CORS Response Headers
+      if (!this.httpOpts.ssr) { this.httpOpts.ssr = 'none'; } // none, all, botsonly - IMPORTANT: SPA must send 'ssr-ready' event to the backend when the DOM is ready
+      if (!this.httpOpts.ssrConsole) { this.httpOpts.ssrConsole = false; } // frontend JS logs in the backend
+      if (!this.httpOpts.ssrModifier) { this.httpOpts.ssrModifier = null; } // modify document on the server side
+      if (!this.httpOpts.debug) { this.httpOpts.debug = false; } // print debug messages
+      if (!this.httpOpts.debugHTML) { this.httpOpts.debugHTML = false; } // debug initial and postrender HTML
     } else {
       throw new Error('HTTP Server options are not defined.');
     }
@@ -415,6 +413,25 @@ const httpOpts = {
     // Modify the document
     this.httpOpts.ssrModifier && this.httpOpts.ssrModifier(document);
 
+    // Register ssr-ready listener BEFORE executing scripts to avoid the race condition
+    // where exeRoute() resolves synchronously (no async __init) and fires the event
+    // before the listener is attached.
+    /*
+  The Dodo controller lifecycle runs like this (Controller.js:30-42):
+  __loader()   ← loads HTML templates
+  __init()     ← fetches data from API  ← THIS CAN TAKE ANY AMOUNT OF TIME
+  __rend()     ← renders dd-* directives into the DOM
+  __postrend() ← everything is done
+  $postflight() ← everything is done plus postflight functions executed in every controller
+    */
+    const ssrReadyPromise = new Promise((resolve) => {
+      dom.window.addEventListener('ssr-ready', () => {
+        this.httpOpts.debug && console.log('SSR: Event ssr-ready received');
+        resolve();
+      }, { once: true });
+      setTimeout(resolve, this.httpOpts.timeout); // fallback only when the event is not received
+    });
+
     // Execute inline and external scripts (only external scripts from the same hostname where is index.html)
     const url_obj = new URL(url);
     const scripts = document.querySelectorAll('script');
@@ -430,15 +447,7 @@ const httpOpts = {
       }
     }
 
-    // Wait for any DOM mutations to settle -mututations due to script executions
-    await new Promise((resolve) => {
-      const observer = new window.MutationObserver(() => { });
-      observer.observe(document, { childList: true, subtree: true });
-      setTimeout(() => {
-        observer.disconnect();
-        resolve();
-      }, this.httpOpts.ssrDomMutuationTimeout);
-    });
+    await ssrReadyPromise;
 
     const renderedHTML = dom.serialize(); // retreive HTML from dom
 
