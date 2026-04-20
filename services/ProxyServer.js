@@ -33,8 +33,8 @@ class ProxyServer {
 
     this.browserOpts = browserOpts || { headless: true, width: 1300, height: 900, position: '0,0' };
 
-    this.proxyServer;
-    this.puppeteer;
+    this.proxyServer = null;
+    this.puppeteer = null;
   }
 
 
@@ -182,7 +182,7 @@ class ProxyServer {
   async closeBrowser() {
     if (!this.browser) { return; }
     await this.browser.close();
-    this.browser.disconnect;
+    this.browser.disconnect();
     delete this.browser;
   }
 

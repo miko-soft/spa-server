@@ -116,7 +116,7 @@ const httpOpts = {
 
     // configure HTTP Server
     this.httpServer.listen(this.httpOpts.port);
-    this.httpServer.timeout = this.httpServer.timeout > 0 ? this.httpOpts.timeout + 100 : 0; // built-in feature provided by Node.js, which can be handy for ensuring that connections don't hang indefinitely due to network issues or unresponsive clients
+    this.httpServer.timeout = this.httpOpts.timeout > 0 ? this.httpOpts.timeout + 100 : 0; // built-in feature provided by Node.js, which can be handy for ensuring that connections don't hang indefinitely due to network issues or unresponsive clients
 
 
     // listen for server events

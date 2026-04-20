@@ -41,7 +41,7 @@ class HTTPServer {
     } else {
       throw new Error('HTTP Server options are not defined.');
     }
-    this.httpServer;
+    this.httpServer = null;
   }
 
 
@@ -255,9 +255,9 @@ class HTTPServer {
 
   _onError() {
     this.httpServer.on('error', error => {
-      if (error.code = 'EACCES') {
+      if (error.code === 'EACCES') {
         console.log(this.httpOpts.port + ' permission denied');
-      } else if (error.code = 'EADDRINUSE') {
+      } else if (error.code === 'EADDRINUSE') {
         console.log(this.httpOpts.port + ' already used');
       }
       console.log(error);
