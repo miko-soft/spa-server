@@ -514,6 +514,7 @@ const httpOpts = {
    */
   _handleError(res, errMsg) {
     console.log('\x1b[31m' + errMsg + '\x1b[0m');
+    if (res.headersSent) { return; }
     res.writeHead(404, { 'Content-Type': 'text/plain', 'X-Error': errMsg });
     res.end(errMsg);
   }
