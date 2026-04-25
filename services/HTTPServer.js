@@ -429,7 +429,10 @@ const httpOpts = {
         this.httpOpts.debug && console.log('SSR: Event ssr-ready received');
         resolve();
       }, { once: true });
-      setTimeout(resolve, this.httpOpts.timeout); // fallback only when the event is not received
+      setTimeout(() => {
+        console.warn('\x1b[33m⚠ WARNING: ssr-ready event was not received within the timeout.\n  The Dodo Framework should call app.ssr()\x1b[0m');
+        resolve();
+      }, this.httpOpts.timeout); // fallback only when the event is not received
     });
 
     // Execute inline and external scripts (only external scripts from the same hostname where is index.html)
